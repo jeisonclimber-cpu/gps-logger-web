@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>GPS Logger Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-sA+e2tGzG2kU6ZfZz9Zt6Z9Qn1z0v+uZ9z+9Z9z+9z8="
+    crossorigin=""
+  />
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    #map { height: 60vh; }
+    #controls { padding: 1em; background: #f0f0f0; }
+    #output { white-space: pre-wrap; font-family: monospace; background: #fff; padding: 1em; margin-top: 1em; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="controls">
+    <button onclick="startLogging()">Start</button>
+    <button onclick="downloadLog()">Download CSV</button>
+    <div id="distance">Distance: 0.00 km</div>
+  </div>
+  <div id="output">Waiting for GPS...</div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    let map = L.map('map').setView([35.0, 135.0], 13); // 
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let polyline = L.polyline([], { color: 'blue' }).addTo(map);
+    let marker = null;
+    let log = [];
+    let last = null;
+    let totalDistance = 0;
+
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 6371e3;
+      const toRad = deg => deg * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function startLogging() {
+      navigator.geolocation.watchPosition(pos => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        const alt = pos.coords.altitude || 0;
+        const spd = pos.coords.speed || 0;
+        const time = new Date().toISOString();
+        const line = `${time},${lat},${lon},${alt},${(spd * 3.6).toFixed(2)}`;
+        log.push(line);
+        document.getElementById('output').textContent = line;
+
+        if (last) {
+          const d = haversine(last.lat, last.lon, lat, lon);
+          totalDistance += d;
+        }
+        last = { lat, lon };
+        document.getElementById('distance').textContent = `Distance: ${(totalDistance/1000).toFixed(2)} km`;
+
+        const latlng = [lat, lon];
+        polyline.addLatLng(latlng);
+        if (!marker) {
+          marker = L.marker(latlng).addTo(map);
+        } else {
+          marker.setLatLng(latlng);
+        }
+        map.setView(latlng, map.getZoom());
+      }, err => alert(err.message), { enableHighAccuracy: true });
+    }
+
+    function downloadLog() {
+      const blob = new Blob([log.join('\n')], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'gps_log.csv';
+      a.click();
+    }
+  </script>
+</body>
+</html>
