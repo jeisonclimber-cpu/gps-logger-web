@@ -11,11 +11,40 @@
     crossorigin=""
   />
   <style>
-    body { margin: 0; font-family: sans-serif; }
-    #map { height: 60vh; }
-    #controls { padding: 1em; background: #f0f0f0; }
-    #output { white-space: pre-wrap; font-family: monospace; background: #fff; padding: 1em; margin-top: 1em; border: 1px solid #ccc; }
+
+
+
+body {
+  margin: 0;
+  font-family: sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+#map {
+  height: 50vh;
+}
+
+#controls {
+  padding: 1em;
+  background: #f0f0f0;
+}
+
+#output {
+  white-space: pre-wrap;
+  font-family: monospace;
+  background: #fff;
+  padding: 1em;
+  margin: 1em;
+  border: 1px solid #ccc;
+  flex-grow: 1;
+  overflow-y: auto;
+}
   </style>
+
+
+
 </head>
 <body>
   <div id="map"></div>
